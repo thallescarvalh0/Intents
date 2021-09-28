@@ -1,15 +1,18 @@
 package br.edu.ifsp.scl.sdm.pa1.intents;
 
+import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.Manifest;
+import android.app.Instrumentation;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -19,6 +22,9 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding activityMainBinding;
     private ActivityResultLauncher<String> requisicaoPermissoesActivityResultLauncher;
+    private ActivityResultLauncher<Intent> selecionarImagemActivityResultLauncher;
+    private ActivityResultLauncher<Intent> escolharAplicativoActivityResultLauncher;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,8 +48,18 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
         );
+        selecionarImagemActivityResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), resultado ->{
+                    visualizarImagem(resultado);
+                });
+
+        escolharAplicativoActivityResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), resultado ->{
+                    visualizarImagem(resultado);
+                });
 
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -84,8 +100,17 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(ligacaoIntent);
                 return true;
             }
-            case R.id.pickMi:
+            case R.id.pickMi: {
+                selecionarImagemActivityResultLauncher.launch(
+                        prepararPegarImagemIntent());
+            }
             case R.id.chooserMi: {
+                Intent escolherAplicativoIntent = new Intent(
+                        Intent.ACTION_CHOOSER);
+                escolherAplicativoIntent.putExtra(Intent.EXTRA_TITLE, "Escolha um aplicativo para imagens");
+                escolherAplicativoIntent.putExtra(Intent.EXTRA_INTENT, prepararPegarImagemIntent());
+                escolharAplicativoActivityResultLauncher.launch(escolherAplicativoIntent);
+
                 return true;
             }
             case R.id.exitMi:{
@@ -113,4 +138,20 @@ public class MainActivity extends AppCompatActivity {
     private void requisitarPermissaoLigacao() {
         requisicaoPermissoesActivityResultLauncher.launch(Manifest.permission.CALL_PHONE);
     }
+
+    private void visualizarImagem(ActivityResult resultado){
+        if (resultado.getResultCode() == RESULT_OK){
+            String referenciaImagemUri = resultado.getData().getDataString();
+            Intent visualizarImagemIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(referenciaImagemUri));
+            startActivity(visualizarImagemIntent);
+        }
+    }
+
+    private Intent prepararPegarImagemIntent(){
+        Intent pegarImagemIntent = new Intent(Intent.ACTION_PICK);
+        String diretorio = this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath();
+        pegarImagemIntent.setDataAndType(Uri.parse(diretorio), "image/*");
+        return pegarImagemIntent;
+    }
+
 }
